@@ -10,8 +10,8 @@
   --text: #1a1a2e;
   --text-muted: #555566;
 
-  --card-bg: rgba(255, 255, 255, 0.82);
-  --card-border: rgba(255, 255, 255, 0.6);
+  --card-bg: rgba(255, 255, 255, 0.94);
+  --card-border: rgba(255, 255, 255, 0.7);
 
   --accent-yellow: #FFD84D;
   --accent-purple: #7810AC;
@@ -39,6 +39,167 @@ body {
   color: var(--text);
   text-align: center;
   -webkit-font-smoothing: antialiased;
+  padding-top: 64px; /* Компенсація для фіксованого навбару */
+}
+
+/* 🔹 ФІКСОВАНА НАВІГАЦІЯ (STICKY GLASSMORPHISM NAVBAR) */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1000;
+  background: rgba(243, 237, 255, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 20px rgba(120, 16, 172, 0.05);
+  transition: all 0.3s ease;
+}
+
+.navbar.scrolled {
+  background: rgba(243, 237, 255, 0.94);
+  box-shadow: 0 8px 30px rgba(120, 16, 172, 0.12);
+}
+
+.nav-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1050px;
+  margin: 0 auto;
+  padding: 8px 20px;
+  height: 64px;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--accent-purple);
+  font-weight: 700;
+  font-size: 19px;
+  transition: transform 0.3s ease;
+}
+
+.nav-brand:hover {
+  transform: scale(1.03);
+}
+
+.nav-logo-img {
+  height: 38px;
+  width: auto;
+  filter: drop-shadow(0 2px 8px rgba(199, 166, 255, 0.4));
+}
+
+.nav-menu {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 25px;
+  transition: all 0.25s ease;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: var(--accent-purple);
+  background: rgba(199, 166, 255, 0.3);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 🔹 БУРГЕР-МЕНЮ ДЛЯ МОБІЛЬНИХ */
+.burger-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(199, 166, 255, 0.6);
+  border-radius: 12px;
+  cursor: pointer;
+  z-index: 1001;
+  box-shadow: 0 4px 12px rgba(120, 16, 172, 0.1);
+  transition: all 0.3s ease;
+}
+
+.burger-bar {
+  display: block;
+  width: 100%;
+  height: 2.5px;
+  background-color: var(--accent-purple);
+  border-radius: 2px;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* Перетворення бургер-іконки на хрестик X */
+.burger-toggle.open .burger-bar:nth-child(1) {
+  transform: translateY(7.5px) rotate(45deg);
+}
+
+.burger-toggle.open .burger-bar:nth-child(2) {
+  opacity: 0;
+}
+
+.burger-toggle.open .burger-bar:nth-child(3) {
+  transform: translateY(-7.5px) rotate(-45deg);
+}
+
+/* Адаптив меню на планшетах і смартфонах */
+@media (max-width: 860px) {
+  .burger-toggle {
+    display: flex;
+  }
+
+  .nav-menu {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    background: rgba(243, 237, 255, 0.98);
+    flex-direction: column;
+    padding: 24px 20px;
+    gap: 12px;
+    border-bottom: 1px solid rgba(199, 166, 255, 0.4);
+    box-shadow: 0 16px 32px rgba(120, 16, 172, 0.15);
+    transform: translateY(-150%);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  .nav-menu.open {
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .nav-link {
+    width: 100%;
+    text-align: center;
+    padding: 12px 20px;
+    font-size: 16px;
+    background: rgba(255, 255, 255, 0.5);
+  }
 }
 
 /* 🔹 ЛОГОТИП ТА ХЕДЕР */
@@ -57,6 +218,7 @@ body {
   transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   filter: drop-shadow(0 8px 20px rgba(199, 166, 255, 0.3));
 }
+
 
 .logo:hover {
   transform: scale(1.05) rotate(-1deg);
@@ -185,8 +347,6 @@ h2 {
   text-decoration: none;
   color: inherit;
   background: var(--card-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   padding: 26px 22px;
   border-radius: 24px;
   border: 1px solid var(--card-border);
@@ -318,10 +478,12 @@ h2 {
 
 @keyframes pulseGlow {
   0%, 100% {
+    transform: scale(1);
     box-shadow: 0 10px 30px rgba(120, 16, 172, 0.35);
   }
   50% {
-    box-shadow: 0 10px 35px rgba(255, 216, 77, 0.6);
+    transform: scale(1.03);
+    box-shadow: 0 10px 32px rgba(255, 216, 77, 0.55);
   }
 }
 
@@ -332,8 +494,6 @@ h2 {
 
 .address-card {
   background: var(--card-bg);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   padding: 28px 24px;
   border-radius: 24px;
   border: 1px solid var(--card-border);
@@ -419,9 +579,7 @@ h2 {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.65);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.3);
   font-size: 24px;
@@ -474,7 +632,6 @@ h2 {
 
 .spa-info {
   background: var(--card-bg);
-  backdrop-filter: blur(12px);
   padding: 28px;
   border-radius: 24px;
   border: 1px solid var(--card-border);
@@ -530,9 +687,7 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.88);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.35s ease;

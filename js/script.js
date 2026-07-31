@@ -86,6 +86,7 @@ function initSlider() {
 
   function startAutoSlide() {
     stopAutoSlide();
+    if (document.hidden) return;
     autoSlideTimer = setInterval(() => {
       setSlide(index + 1);
     }, 4500);
@@ -101,6 +102,15 @@ function initSlider() {
   function resetAutoSlide() {
     startAutoSlide();
   }
+
+  // Пауза слайдера коли вкладка неактивна для економії ресурсів RAM/CPU
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      stopAutoSlide();
+    } else {
+      startAutoSlide();
+    }
+  });
 
   if (next) {
     next.onclick = () => {
@@ -128,6 +138,7 @@ function initSlider() {
     }
   };
 }
+
 
 
 // 🔹 SWIPE ДЛЯ ТАЧ-ПРИСТРОЇВ
@@ -226,12 +237,80 @@ function initLightbox() {
 }
 
 
+// 🔹 ФІКСОВАНА НАВІГАЦІЯ ТА БУРГЕР-МЕНЮ
+function initNavbar() {
+  const burgerToggle = document.getElementById('burger-toggle');
+  const navMenu = document.getElementById('nav-menu');
+  const navLinks = document.querySelectorAll('.nav-link');
+  const navbar = document.getElementById('navbar');
+
+  if (!burgerToggle || !navMenu) return;
+
+  function toggleMenu() {
+    const isOpen = navMenu.classList.toggle('open');
+    burgerToggle.classList.toggle('open');
+    burgerToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    burgerToggle.setAttribute('aria-label', isOpen ? 'Закрити меню' : 'Відкрити меню');
+
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+  }
+
+  function closeMenu() {
+    navMenu.classList.remove('open');
+    burgerToggle.classList.remove('open');
+    burgerToggle.setAttribute('aria-expanded', 'false');
+    burgerToggle.setAttribute('aria-label', 'Відкрити меню');
+    document.body.style.overflow = '';
+  }
+
+  burgerToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleMenu();
+  });
+
+  navLinks.forEach(link => {
+    link.addEventListener('click', () => {
+      closeMenu();
+    });
+  });
+
+  // Закриття кліком за межами
+  document.addEventListener('click', (e) => {
+    if (navMenu.classList.contains('open') && !navMenu.contains(e.target) && !burgerToggle.contains(e.target)) {
+      closeMenu();
+    }
+  });
+
+  // Закриття через Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && navMenu.classList.contains('open')) {
+      closeMenu();
+    }
+  });
+
+  // Ефект тіні навбару при скролі
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 20) {
+      navbar?.classList.add('scrolled');
+    } else {
+      navbar?.classList.remove('scrolled');
+    }
+  }, { passive: true });
+}
+
+
 // 🔥 ІНІЦІАЛІЗАЦІЯ
 document.addEventListener("DOMContentLoaded", () => {
+  initNavbar();
   initAnimations();
 
   const sliderData = initSlider();
   initSwipe(sliderData);
 
   initLightbox();
-});
+});
+
