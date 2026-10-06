@@ -50,6 +50,25 @@ function initSlider() {
 
   let index = 0;
   let autoSlideTimer = null;
+  let paused = false;
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const pause = document.createElement('button');
+  pause.type = 'button';
+  pause.className = 'slider-pause';
+  pause.textContent = 'Пауза';
+  pause.setAttribute('aria-label', 'Зупинити автоматичну зміну слайдів');
+  pause.addEventListener('click', () => {
+    paused = !paused;
+    pause.textContent = paused ? 'Відтворити' : 'Пауза';
+    pause.setAttribute('aria-label', paused ? 'Увімкнути автоматичну зміну слайдів' : 'Зупинити автоматичну зміну слайдів');
+    startAutoSlide();
+  });
+  slider.appendChild(pause);
+  slider.addEventListener('mouseenter', stopAutoSlide);
+  slider.addEventListener('mouseleave', startAutoSlide);
+  slider.addEventListener('focusin', stopAutoSlide);
+  slider.addEventListener('focusout', () => setTimeout(startAutoSlide, 0));
+  reducedMotion.addEventListener('change', startAutoSlide);
 
   // Створення точок навігації (пагінації)
   let dotsContainer = slider.querySelector('.slider-dots');
@@ -58,6 +77,7 @@ function initSlider() {
     dotsContainer.className = 'slider-dots';
     slides.forEach((_, i) => {
       const dot = document.createElement('button');
+      dot.type = 'button';
       dot.className = `dot ${i === 0 ? 'active' : ''}`;
       dot.setAttribute('aria-label', `Перейти до слайду ${i + 1}`);
       dot.addEventListener('click', () => {
@@ -72,8 +92,14 @@ function initSlider() {
   const dots = dotsContainer.querySelectorAll('.dot');
 
   function showSlide(i) {
-    slides.forEach(s => s.classList.remove('active'));
-    dots.forEach(d => d.classList.remove('active'));
+    slides.forEach((slide, n) => {
+      slide.classList.remove('active');
+      slide.setAttribute('aria-hidden', n === i ? 'false' : 'true');
+    });
+    dots.forEach((dot, n) => {
+      dot.classList.remove('active');
+      dot.setAttribute('aria-current', n === i ? 'true' : 'false');
+    });
 
     slides[i].classList.add('active');
     if (dots[i]) dots[i].classList.add('active');
@@ -86,7 +112,7 @@ function initSlider() {
 
   function startAutoSlide() {
     stopAutoSlide();
-    if (document.hidden) return;
+    if (document.hidden || paused || reducedMotion.matches || slider.matches(':hover, :focus-within') || slides.length < 2) return;
     autoSlideTimer = setInterval(() => {
       setSlide(index + 1);
     }, 4500);
@@ -126,6 +152,7 @@ function initSlider() {
     };
   }
 
+  showSlide(index);
   startAutoSlide();
 
   return {
@@ -145,25 +172,38 @@ function initSlider() {
 function initSwipe(sliderData) {
   if (!sliderData) return;
 
-  const { slider, slides, getIndex, setSlide } = sliderData;
+  const { slider, getIndex, setSlide } = sliderData;
 
   let startX = 0;
   let endX = 0;
+  let startY = 0;
+  let endY = 0;
+  let touching = false;
 
   slider.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) { touching = false; return; }
+    touching = true;
     startX = e.touches[0].clientX;
+    startY = endY = e.touches[0].clientY;
     endX = startX; // Скидаємо endX, щоб уникнути помилкового обчислення
   }, { passive: true });
 
   slider.addEventListener('touchmove', (e) => {
+    if (!touching || e.touches.length !== 1) { touching = false; return; }
+    endY = e.touches[0].clientY;
     endX = e.touches[0].clientX;
   }, { passive: true });
 
-  slider.addEventListener('touchend', () => {
+  slider.addEventListener('touchcancel', () => { touching = false; });
+  slider.addEventListener('touchend', (event) => {
+    if (!touching) return;
+    touching = false;
+    const touch = event.changedTouches[0];
+    if (touch) { endX = touch.clientX; endY = touch.clientY; }
     const diff = startX - endX;
     const threshold = 50;
 
-    if (Math.abs(diff) > threshold) {
+    if (Math.abs(diff) > threshold && Math.abs(diff) > Math.abs(startY - endY)) {
       let currentIndex = getIndex();
       if (diff > 0) {
         setSlide(currentIndex + 1);
@@ -179,60 +219,55 @@ function initSwipe(sliderData) {
 function initLightbox() {
   const images = document.querySelectorAll('.gallery img, .schedule-image');
   if (!images.length) return;
-
-  // Створення елементів модального вікна
-  let lightbox = document.getElementById('lightbox-modal');
-  if (!lightbox) {
-    lightbox = document.createElement('div');
-    lightbox.id = 'lightbox-modal';
-    lightbox.className = 'lightbox-modal';
-    lightbox.setAttribute('role', 'dialog');
-    lightbox.setAttribute('aria-label', 'Перегляд зображення');
-    lightbox.innerHTML = `
-      <div class="lightbox-content">
-        <button class="lightbox-close" aria-label="Закрити">&times;</button>
-        <img class="lightbox-img" src="" alt="Збільшене зображення">
-        <p class="lightbox-caption"></p>
-      </div>
-    `;
-    document.body.appendChild(lightbox);
-  }
-
-  const lightboxImg = lightbox.querySelector('.lightbox-img');
-  const lightboxCaption = lightbox.querySelector('.lightbox-caption');
+  const lightbox = document.createElement('div');
+  lightbox.id = 'lightbox-modal';
+  lightbox.className = 'lightbox-modal';
+  lightbox.setAttribute('role', 'dialog');
+  lightbox.setAttribute('aria-modal', 'true');
+  lightbox.setAttribute('aria-label', 'Перегляд зображення');
+  lightbox.setAttribute('aria-hidden', 'true');
+  lightbox.innerHTML = `<div class="lightbox-content">
+    <button type="button" class="lightbox-close" aria-label="Закрити">&times;</button>
+    <img class="lightbox-img" alt=""><p class="lightbox-caption"></p></div>`;
+  document.body.appendChild(lightbox);
   const closeBtn = lightbox.querySelector('.lightbox-close');
-
-  function openLightbox(src, altText) {
-    lightboxImg.src = src;
-    lightboxImg.alt = altText || '';
-    lightboxCaption.textContent = altText || '';
-    lightbox.classList.add('active');
-    document.body.style.overflow = 'hidden';
-  }
-
+  let trigger = null;
+  let previousOverflow = '';
+  let background = [];
   function closeLightbox() {
     lightbox.classList.remove('active');
-    document.body.style.overflow = '';
+    lightbox.setAttribute('aria-hidden', 'true');
+    background.forEach(([element, wasInert]) => { element.inert = wasInert; });
+    document.body.style.overflow = previousOverflow;
+    trigger?.focus();
   }
-
   images.forEach(img => {
-    img.style.cursor = 'zoom-in';
-    img.addEventListener('click', () => {
-      openLightbox(img.src, img.alt);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = img.classList.contains('schedule-image') ? 'schedule-image-button' : 'gallery-image-button';
+    button.setAttribute('aria-label', `Збільшити: ${img.alt}`);
+    img.before(button);
+    button.appendChild(img);
+    button.addEventListener('click', () => {
+      trigger = button;
+      previousOverflow = document.body.style.overflow;
+      const fullImage = lightbox.querySelector('.lightbox-img');
+      fullImage.src = img.currentSrc || img.src;
+      fullImage.alt = img.alt;
+      lightbox.querySelector('.lightbox-caption').textContent = img.alt;
+      background = [...document.body.children].filter(element => element !== lightbox).map(element => [element, element.inert]);
+      background.forEach(([element]) => { element.inert = true; });
+      lightbox.classList.add('active');
+      lightbox.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      closeBtn.focus();
     });
   });
-
   closeBtn.addEventListener('click', closeLightbox);
-  lightbox.addEventListener('click', (e) => {
-    if (e.target === lightbox) {
-      closeLightbox();
-    }
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && lightbox.classList.contains('active')) {
-      closeLightbox();
-    }
+  lightbox.addEventListener('click', event => { if (event.target === lightbox) closeLightbox(); });
+  lightbox.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeLightbox();
+    if (event.key === 'Tab') { event.preventDefault(); closeBtn.focus(); }
   });
 }
 
@@ -289,8 +324,12 @@ function initNavbar() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && navMenu.classList.contains('open')) {
       closeMenu();
+      burgerToggle.focus();
     }
   });
+
+  window.matchMedia('(max-width: 860px)').addEventListener('change', closeMenu);
+  window.addEventListener('pageshow', closeMenu);
 
   // Ефект тіні навбару при скролі
   window.addEventListener('scroll', () => {
@@ -305,6 +344,7 @@ function initNavbar() {
 
 // 🔥 ІНІЦІАЛІЗАЦІЯ
 document.addEventListener("DOMContentLoaded", () => {
+  document.documentElement.classList.add('js');
   initNavbar();
   initAnimations();
 
